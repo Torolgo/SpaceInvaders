@@ -22,6 +22,7 @@ const saveLeaderboard = (leaderboard) => {
     localStorage.setItem('spaceInvadersLeaderboard', JSON.stringify(leaderboard));
 };
 
+// Adds a new score to the leaderboard, sorts entries by score and time, and keeps only top 10
 const addScoreToLeaderboard = (playerName, playerScore, timeLeft) => {
     const leaderboard = loadLeaderboard();
 
@@ -50,6 +51,7 @@ const addScoreToLeaderboard = (playerName, playerScore, timeLeft) => {
     displayLeaderboard();
 };
 
+// Renders the leaderboard data from local storage into the DOM table
 const displayLeaderboard = () => {
     const leaderboard = loadLeaderboard();
     const leaderboardBody = document.getElementById('leaderboard-body');
@@ -84,6 +86,7 @@ const displayLeaderboard = () => {
     });
 };
 
+// Creates and displays a modal for collecting player name when game is won
 const showNameInputModal = () => {
     const modal = document.createElement('div');
     modal.classList.add('name-modal');
