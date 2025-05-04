@@ -12,7 +12,6 @@ let playerRect = null;
 let gameZoneRect = null;
 let gameTimer = 60;
 let remainingShots = 30;
-const winningScore = 200;
 
 const loadLeaderboard = () => {
     return JSON.parse(localStorage.getItem('spaceInvadersLeaderboard')) || [];
@@ -23,25 +22,19 @@ const saveLeaderboard = (leaderboard) => {
 };
 
 // Adds a new score to the leaderboard, sorts entries by score and time, and keeps only top 10
-const addScoreToLeaderboard = (playerName, playerScore, timeLeft) => {
+const addScoreToLeaderboard = (playerName, playerScore) => {
     const leaderboard = loadLeaderboard();
 
     const newRecord = {
         name: playerName,
         score: playerScore,
-        timeLeft: timeLeft,
         date: new Date().toISOString().split('T')[0] // Format YYYY-MM-DD
     };
 
     leaderboard.push(newRecord);
 
-    leaderboard.sort((a, b) => {
-        if (a.score !== b.score) {
-            return b.score - a.score;
-        } else {
-            return b.timeLeft - a.timeLeft;
-        }
-    });
+    // Tri uniquement par score puisqu'il n'y a plus de timeLeft
+    leaderboard.sort((a, b) => b.score - a.score);
 
     if (leaderboard.length > 10) {
         leaderboard.splice(10);
@@ -70,16 +63,12 @@ const displayLeaderboard = () => {
         const scoreCell = document.createElement('td');
         scoreCell.textContent = entry.score;
 
-        const timeCell = document.createElement('td');
-        timeCell.textContent = entry.timeLeft + ' s';
-
         const dateCell = document.createElement('td');
         dateCell.textContent = entry.date;
 
         row.appendChild(rankCell);
         row.appendChild(nameCell);
         row.appendChild(scoreCell);
-        row.appendChild(timeCell);
         row.appendChild(dateCell);
 
         leaderboardBody.appendChild(row);
@@ -95,10 +84,10 @@ const showNameInputModal = () => {
     modalContent.classList.add('name-modal-content');
 
     const modalTitle = document.createElement('h2');
-    modalTitle.textContent = 'You won!';
+    modalTitle.textContent = 'Victory!';
 
     const scoreInfo = document.createElement('p');
-    scoreInfo.textContent = `Score: ${score} - Time left: ${gameTimer}s`;
+    scoreInfo.textContent = `Final Score: ${score}`;
 
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
@@ -106,10 +95,10 @@ const showNameInputModal = () => {
     nameInput.maxLength = 15;
 
     const submitButton = document.createElement('button');
-    submitButton.textContent = 'Save Score';
+    submitButton.textContent = 'Save';
     submitButton.addEventListener('click', () => {
-        const playerName = nameInput.value.trim() || 'Anonymous';
-        addScoreToLeaderboard(playerName, score, gameTimer);
+        const playerName = nameInput.value.trim() || 'Anonyme';
+        addScoreToLeaderboard(playerName, score);
         modal.remove();
         window.location.reload();
     });
@@ -204,23 +193,16 @@ const endGame = (endType) => {
             mainText.textContent = 'Game Over';
             break;
         case 'noTime':
-            mainText.textContent = 'Time is Over!';
-            break;
+            showNameInputModal();
+            return;
         case 'noShots':
             mainText.textContent = 'No More Shots!';
             mainText.style.fontSize = '60px';
             break;
         case 'victory':
-            // Pour la victoire, on affiche le modal de saisie du nom
             showNameInputModal();
             return;
     }
-
-    const scoreText = document.createElement('div');
-    scoreText.classList.add('victorySubtitle');
-    scoreText.style.color = 'white';
-    scoreText.style.marginTop = '20px';
-    scoreText.textContent = `Your score: ${score}`;
 
     const retryButton = document.createElement('button');
     retryButton.classList.add('retryButton');
@@ -230,7 +212,6 @@ const endGame = (endType) => {
     });
 
     gameZone.appendChild(mainText);
-    gameZone.appendChild(scoreText);
     gameZone.appendChild(retryButton);
 };
 
@@ -240,7 +221,7 @@ const initGame = () => {
     startButton.addEventListener('click', startGame);
     document.addEventListener('keydown', handlePlayerMovement);
     startCollisionCheck();
-    displayLeaderboard(); // Charger le leaderboard au démarrage
+    displayLeaderboard();
 };
 
 //Updates the dimensions and positions of the player and the game zone.
@@ -259,9 +240,7 @@ const startGame = () => {
     startButton.classList.add('hidden');
     gameZone.classList.remove('hidden');
     gameStatus = true;
-    playerLives = 3;
-    gameTimer = 60;
-    remainingShots = 30;
+
 
     createLivesDisplay();
     createShotsDisplay();
@@ -287,9 +266,6 @@ const getRandomInt = (min, max) => {
 const updateScore = (points) => {
     score += points;
     scoreElement.textContent = 'Score: ' + score;
-    if (score >= winningScore) {
-        endGame('victory');
-    }
 };
 
 const stopAllIntervals = () => {
@@ -390,6 +366,15 @@ const createMissile = () => {
             if (checkCollision(missileRect, enemyRect)) {
                 const points = parseInt(enemy.dataset.points, 10);
                 updateScore(points);
+
+                if (Math.random() < 0.4 && remainingShots < 30) {
+                    remainingShots++;
+                    updateShotsDisplay();
+
+                    // Afficher une notification
+                    showNotification('+1 Shot');
+                }
+
                 enemy.remove();
                 missile.remove();
                 clearInterval(missileInterval);
@@ -403,6 +388,26 @@ const createMissile = () => {
         }
     }, 30);
     intervals.push(missileInterval);
+};
+
+const showNotification = (message) => {
+    const notification = document.createElement('div');
+    notification.classList.add('notification');
+    notification.textContent = message;
+
+    gameZone.appendChild(notification);
+
+    // Position au centre de l'écran
+    notification.style.left = `${(gameZoneRect.width - notification.offsetWidth) / 2}px`;
+    notification.style.top = `${(gameZoneRect.height - notification.offsetHeight) / 2}px`;
+
+    // Animation de fade-out
+    setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => {
+            notification.remove();
+        }, 500);
+    }, 1000);
 };
 
 //Spawns a random enemy in the game zone and manages its downward movement.
