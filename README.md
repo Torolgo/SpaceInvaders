@@ -1,4 +1,5 @@
 # Space Invaders Game
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## 📚 Description
 A classic Space Invaders game built with JavaScript, HTML, and CSS, running on a Node.js server. The game features enemies to shoot, score tracking, a countdown timer, and a local leaderboard.
